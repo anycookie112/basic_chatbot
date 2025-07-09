@@ -164,8 +164,60 @@ class RetrievalGeneration:
     
 
 
-# class Answer
 
+vectorstore = Chroma(
+    collection_name="zus-products",
+    embedding_function=embedding_model,
+    persist_directory="./zus_products_vectorstore"
+)
+
+retriever = vectorstore.as_retriever()
+
+
+# pprint(doc_splits)
+from langchain import hub
+from langchain_core.output_parsers import StrOutputParser
+
+# prompt_cs = ChatPromptTemplate.from_template("""
+# You are a customer support agent for ZUS Coffee. Your job is to answer customer questions based on the product information available in the vector store.
+# You can provide additional information that is listed in the context given to you even when the question does not explicitly ask for it. But do not overload the customer with too much information.
+# Emphasize key details like special offers or features.
+# If the information is not available, you can say "I don't know" or "Not available
+# Use the following product context to help answer the customer's question. Be concise, friendly, and helpful.
+
+# Context:
+# {context}
+
+# Customer Question:
+# {question}
+
+# Answer:
+# """)
+docs_txt = format_docs(docs)
+rag_chain = prompt_cs | llm | StrOutputParser()
+generation = rag_chain.invoke({"context": docs_txt, "question": question})
+print(generation)
+
+
+class AnswerGeneration:
+    def __init__ (self):
+        self.prompt = None
+
+    def generate_answer(self, docs):
+
+        rag_chain = prompt_cs | llm | StrOutputParser()
+        generation = rag_chain.invoke({"context": docs_txt, "question": question})
+
+
+
+class LLMmanager:
+    def __init__(self, llm):
+        self.llm = llm
+        self.embedding_model = embedding_model
+        self.prompt = None
+
+    def _create_prompt(self)
+        return prompt_cs
 
 persist_directory="./zus_products_vectorstore"
 rag = RetrievalGeneration(llm=llm)

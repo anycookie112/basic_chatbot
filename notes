@@ -1,0 +1,19 @@
+so now main issue is the querying of vector db
+db does not know expensive = higher number
+
+
+so how do i incoporate agents into this 
+
+i need a planner 
+https://langchain-ai.github.io/langgraph/tutorials/plan-and-execute/plan-and-execute/#planning-step
+prompt
+keep in mind there are multiple agents under the supervisor
+
+pass plan to supervisor 
+supervisor will follow the plan and assign the tasks accrodingly
+
+so agents 
+retrival agent
+calculation agent
+reranking?
+
