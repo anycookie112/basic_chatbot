@@ -131,12 +131,21 @@ def retrieve_documents(question: str) -> str:
     docs = vectorstore.as_retriever().invoke(question)
     return format_docs(docs)
 
-tools = [retrieve_documents]
+retriever = vectorstore.as_retriever()
+from langchain.tools.retriever import create_retriever_tool
+
+retriever_tool = create_retriever_tool(
+    retriever,
+    "retrieve_product_information",
+    "Search and return information about ZUS coffee shop products.",
+)
+
+tools = [retriever_tool]
 
 def prompt(state, config):
     system_msg = (
         "You are a data retriver, you have a tool that retrives data from a database\n "
-        "respond with a small summary of what is gathered. Never do any calculations related task and never include data that is not presented in the information queried"
+        "Never include data that is not presented in the information queried"
     )
     return [SystemMessage(content=system_msg)] + state["messages"]
 
@@ -164,7 +173,9 @@ customer_service_agent = create_react_agent(
 )
 
 # for chunk in customer_service_agent.stream(
-#     {"messages": [{"role": "user", "content": "I am looking for a affordable mug with big capacity which one would you recommend"}]}
+#     # {"messages": [{"role": "user", "content": "I am looking for a affordable mug with big capacity which one would you recommend, and how much would it cost if i were to buy 2 of them."}]}
+#     {"messages": [{"role": "user", "content": "2+2*8"}]}
+
 # ):
 #     pretty_print_messages(chunk)
 
@@ -222,7 +233,7 @@ for chunk in supervisor.stream(
         "messages": [
             {
                 "role": "user",
-                "content": " What is 6 + 7 * 8",
+                "content": " What is the total price of a RM 5 mug and two RM 7 mug",
             }
         ]
     },

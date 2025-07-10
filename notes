@@ -17,3 +17,14 @@ retrival agent
 calculation agent
 reranking?
 
+
+
+
+so today i want to try the api thing
+and try to scrape the data of outlets and put in a db
+
+
+so plan > query > answer question
+
+
+so do i really need the context thing inside the prompt?

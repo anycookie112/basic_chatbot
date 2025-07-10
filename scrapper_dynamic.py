@@ -4,7 +4,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from pprint import pprint
-from llm import llm_groq
+from llm_list import llm_groq
 from langchain.prompts import ChatPromptTemplate
 from embedding_model import embedding_minilm
 from langchain_community.vectorstores import Chroma
@@ -142,6 +142,7 @@ from langchain_core.output_parsers import StrOutputParser
 prompt_cs = ChatPromptTemplate.from_template("""
 You are a customer support agent for ZUS Coffee. Your job is to answer customer questions based on the product information available in the vector store.
 You can provide additional information that is listed in the context given to you even when the question does not explicitly ask for it. But do not overload the customer with too much information.
+Emphasize key details like special offers or features.
 If the information is not available, you can say "I don't know" or "Not available
 Use the following product context to help answer the customer's question. Be concise, friendly, and helpful.
 
@@ -162,6 +163,27 @@ rag_chain = prompt_cs | llm | StrOutputParser()
 generation = rag_chain.invoke({"context": docs_txt, "question": question})
 print(generation)
 
+
+from typing import List, TypedDict
+class GraphState(TypedDict):
+    """
+    Represents the state of our graph.
+
+    Attributes:
+        question: question
+        generation: LLM generation
+        documents: list of documents
+    """
+
+    question: str
+    generation: str
+    documents: List[str]
+
+
+
+
+
+
 """
 
 so have a llm agent of 
@@ -176,6 +198,8 @@ so i need to give a list of urls? or just use tavily
 check db 
 if similarity scores are low, find new information
 so i need a grader for this answer?
+
+i also need a planning agent to plan the steps to take
 
 
 
