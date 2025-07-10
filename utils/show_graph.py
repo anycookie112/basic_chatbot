@@ -12,3 +12,15 @@ def show_mermaid(react_graph):
     # Display using PIL (launches the default image viewer)
     image.show()
 
+
+
+def show_supervisor(supervisor):
+    """
+    Display the LangGraph supervisor graph using PIL (for VS Code or script environments).
+    
+    Args:
+        supervisor: The LangGraph supervisor object with .get_graph().draw_mermaid_png().
+    """
+    png_data = supervisor.get_graph().draw_mermaid_png()
+    image = Image.open(BytesIO(png_data))
+    image.show()

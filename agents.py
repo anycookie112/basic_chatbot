@@ -1,13 +1,15 @@
 import requests
 from bs4 import BeautifulSoup
 from langchain.tools import tool
-from llm import llm_groq
+from llm_list import llm_groq
 from pprint import pprint
-from prompts import prompt_scrapping, prompt_cs
+from prompts import *
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 import numpy as np
 from embedding_model import embedding_minilm
+
+
 
 llm = llm_groq()
 embedding_model = embedding_minilm()
@@ -35,27 +37,28 @@ class MathTools:
         """Multiplies two numbers"""
         return a * b
 
-math_tools = MathTools()
-agent_tools = [math_tools.add, math_tools.subtract, math_tools.multiply]
+# math_tools = MathTools()
+# agent_tools = [math_tools.add, math_tools.subtract, math_tools.multiply]
 
 
-llm_with_tools = llm.bind_tools(agent_tools)
+# llm_with_tools = llm.bind_tools(agent_tools)
 
 # response = llm_with_tools.invoke("What is 5 + 3? What is 10 - 2? What is 4 * 6?")
 
+from langchain.tools import tool
 
-class RetrievalGeneration:
-    def __init__(self, llm):
+class RetrievalGenerationAgent:
+    def __init__(self, llm, persist_directory="./zus_products_vectorstore"):
         self.retriever = None
         self.retrieved_docs = None
         self.embedding_model = None
         self.model = llm
-        self.prompt = None
-        self.url = None
+        self.persist_directory = persist_directory
 
-    def load_documents(self, directory):
-        persist_directory="./zus_products_vectorstore"
-        url = self.url
+    # @tool("load_zus_documents")
+    def load_documents(self, prompt, url = "https://shop.zuscoffee.com/collections/drinkware", ):
+        presist_directory = self.persist_directory
+        llm = self.model
 
         headers = {
             "User-Agent": "Mozilla/5.0"
@@ -79,11 +82,11 @@ class RetrievalGeneration:
         doc = [Document(
             page_content=clean_text,
             metadata={
-                "source": "https://shop.zuscoffee.com/collections/drinkware",
+                "source": url,
                 "category": "Drinkware"
             }
         )]
-        prompt = self.prompt
+        
         chain = prompt | llm
 
         response = chain.invoke({"doc": doc})
@@ -119,16 +122,20 @@ class RetrievalGeneration:
         documents=docs,
         collection_name="zus-products",
         embedding= self.embedding_model,
-        persist_directory= persist_directory
+        persist_directory= presist_directory
         )
 
         self.retriever = vectorstore.as_retriever()
         return self.retriever
 
-    
-    def get_documents(self, question, top_k):
-        if not self.retriever:
-            raise ValueError("Documents must be loaded before they can be searched")
+    # @tool("get_documents")
+    def get_documents(self, question, top_k=5, persist_directory="./zus_products_vectorstore"):
+        vectorstore = Chroma(
+            collection_name="zus-products",
+            embedding_function = self.embedding_model,
+            persist_directory=persist_directory
+        )
+        self.retriever = vectorstore.as_retriever()
         # get relevant docs
         self.retrieved_docs = self.retriever.invoke(question) or []  # Get initial retrieved docs
         # Re-rank and select top K
@@ -136,6 +143,7 @@ class RetrievalGeneration:
         formatted_docs = format_docs(ranked_docs) if ranked_docs else []
         return formatted_docs
     
+    # @tool("load_existing_vectorstore")
     def load_existing_vectorstore(self, persist_directory="./zus_products_vectorstore"):
         vectorstore = Chroma(
             collection_name="zus-products",
@@ -145,6 +153,7 @@ class RetrievalGeneration:
         self.retriever = vectorstore.as_retriever()
         print("Vectorstore loaded and retriever initialized.")
     
+
     def rerank_documents(self, query, top_k=2):
         """Ranks documents based on cosine similarity to the query embedding."""
         if not self.embedding_model or hasattr(self.embedding_model, 'embed_query') is False:
@@ -163,15 +172,26 @@ class RetrievalGeneration:
         return top_docs
     
 
+from langchain.agents import initialize_agent, AgentType
+from langchain.agents import Tool
+from langgraph.prebuilt import create_react_agent
+
+# Instantiate your class
 
 
-vectorstore = Chroma(
-    collection_name="zus-products",
-    embedding_function=embedding_model,
-    persist_directory="./zus_products_vectorstore"
-)
+from langchain_core.messages import convert_to_messages
 
-retriever = vectorstore.as_retriever()
+
+# Call the agent
+
+
+# vectorstore = Chroma(
+#     collection_name="zus-products",
+#     embedding_function=embedding_model,
+#     persist_directory="./zus_products_vectorstore"
+# )
+
+# retriever = vectorstore.as_retriever()
 
 
 # pprint(doc_splits)
@@ -193,43 +213,69 @@ from langchain_core.output_parsers import StrOutputParser
 
 # Answer:
 # """)
-docs_txt = format_docs(docs)
-rag_chain = prompt_cs | llm | StrOutputParser()
-generation = rag_chain.invoke({"context": docs_txt, "question": question})
-print(generation)
+# docs_txt = format_docs(docs)
+# rag_chain = prompt_cs | llm | StrOutputParser()
+# generation = rag_chain.invoke({"context": docs_txt, "question": question})
+# print(generation)
 
+# class Plan(BaseModel):
+#     """Plan to follow in future"""
+
+#     steps: List[str] = Field(
+#         description="different steps to follow, should be in sorted order"
+#     )
+
+# from langchain_core.prompts import ChatPromptTemplate
+
+# planner_prompt = ChatPromptTemplate.from_messages(
+#     [
+#         (
+#             "system",
+#             """For the given objective, come up with a simple step by step plan. \
+# This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. \
+# The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.""",
+#         ),
+#         ("placeholder", "{messages}"),
+#     ]
+# )
+# planner = planner_prompt | llm(
+#     model="gpt-4o", temperature=0
+# ).with_structured_output(Plan)
 
 class AnswerGeneration:
-    def __init__ (self):
+    def __init__ (self, llm):
         self.prompt = None
+        self.model = llm
 
-    def generate_answer(self, docs):
-
+    def generate_answer(self, docs_txt, question, prompt=prompt_cs):
+        llm = self.model
         rag_chain = prompt_cs | llm | StrOutputParser()
         generation = rag_chain.invoke({"context": docs_txt, "question": question})
+        return generation
 
 
+# answers = AnswerGeneration(llm)
 
 class LLMmanager:
-    def __init__(self, llm):
+    def __init__(self, llm, embedding_model):
         self.llm = llm
         self.embedding_model = embedding_model
         self.prompt = None
 
-    def _create_prompt(self)
+    def _create_prompt(self):
         return prompt_cs
 
-persist_directory="./zus_products_vectorstore"
-rag = RetrievalGeneration(llm=llm)
-rag.prompt = prompt_scrapping
-rag.url = "https://shop.zuscoffee.com/collections/drinkware"
-rag.embedding_model = embedding_model
-# rag.load_documents(directory=persist_directory)  
+# persist_directory="./zus_products_vectorstore"
+# rag = RetrievalGeneration(llm=llm)
+# rag.prompt = prompt_scrapping
+# rag.url = "https://shop.zuscoffee.com/collections/drinkware"
+# rag.embedding_model = embedding_model
+# # rag.load_documents(directory=persist_directory)  
 
 
-rag.load_existing_vectorstore()
-docs = rag.get_documents("Most expensive products you have", top_k=3)
-print(docs)
+# rag.load_existing_vectorstore() # runs the functions, and will return retriever into the class, so all the items that are in the class can use retriever
+# docs = rag.get_documents("Most expensive products you have", top_k=3)
+# print(docs)
 
 #     def retrieve(state, vectorstore):
 #         """
@@ -335,29 +381,8 @@ print(docs)
 # from pydantic import BaseModel, Field
 
 
-# class Plan(BaseModel):
-#     """Plan to follow in future"""
 
-#     steps: List[str] = Field(
-#         description="different steps to follow, should be in sorted order"
-#     )
 
-# from langchain_core.prompts import ChatPromptTemplate
-
-# planner_prompt = ChatPromptTemplate.from_messages(
-#     [
-#         (
-#             "system",
-#             """For the given objective, come up with a simple step by step plan. \
-# This plan should involve individual tasks, that if executed correctly will yield the correct answer. Do not add any superfluous steps. \
-# The result of the final step should be the final answer. Make sure that each step has all the information needed - do not skip steps.""",
-#         ),
-#         ("placeholder", "{messages}"),
-#     ]
-# )
-# planner = planner_prompt | llm(
-#     model="gpt-4o", temperature=0
-# ).with_structured_output(Plan)
 
 
 # from langgraph.graph import MessagesState
@@ -409,3 +434,105 @@ print(docs)
 
 
 
+
+
+
+
+
+
+
+
+
+
+def pretty_print_message(message, indent=False):
+    pretty_message = message.pretty_repr(html=True)
+    if not indent:
+        print(pretty_message)
+        return
+
+    indented = "\n".join("\t" + c for c in pretty_message.split("\n"))
+    print(indented)
+
+
+def pretty_print_messages(update, last_message=False):
+    is_subgraph = False
+    if isinstance(update, tuple):
+        ns, update = update
+        # skip parent graph updates in the printouts
+        if len(ns) == 0:
+            return
+
+        graph_id = ns[-1].split(":")[0]
+        print(f"Update from subgraph {graph_id}:")
+        print("\n")
+        is_subgraph = True
+
+    for node_name, node_update in update.items():
+        update_label = f"Update from node {node_name}:"
+        if is_subgraph:
+            update_label = "\t" + update_label
+
+        print(update_label)
+        print("\n")
+
+        messages = convert_to_messages(node_update["messages"])
+        if last_message:
+            messages = messages[-1:]
+
+        for m in messages:
+            pretty_print_message(m, indent=is_subgraph)
+        print("\n")
+
+question = "what are the available drinkwares under rm 70?"
+
+# def get_documents(question: str):
+"""Return revelevant documents for a given question"""
+vectorstore = Chroma(
+    collection_name="zus-products",
+    embedding_function=embedding_model,
+    persist_directory="./zus_products_vectorstore"
+)
+retriever = vectorstore.as_retriever()
+docs = retriever.invoke(question)
+docs_txt = format_docs(docs)
+    
+
+prompt_cs = ChatPromptTemplate.from_template("""
+You are a customer support agent for ZUS Coffee. Your job is to answer customer questions based on the product information available in the vector store.
+You can provide additional information that is listed in the context given to you even when the question does not explicitly ask for it. But do not overload the customer with too much information.
+Emphasize key details like special offers or features.
+If the information is not available, you can say "I don't know" or "Not available
+Use the following product context to help answer the customer's question. Be concise, friendly, and helpful.
+
+Context:
+{context}
+
+Customer Question:
+{question}
+
+Answer:
+""")
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+docs_txt = format_docs(docs)
+rag_chain = prompt_cs | llm | StrOutputParser()
+
+# # Wrap into LangChain tools
+# from langchain.agents import create_react_agent, AgentExecutor
+
+
+# # def prompt(state, config):
+# #     system_msg = "You are a data retrieval agent. Your job is to retrieve relevant documents from a vector store based on the user's question. Do not fabricate any information and don't give any explanation or reasoning, just return the documents."
+# #     return [SystemMessage(content=system_msg)] + state["messages"]
+
+agent = create_react_agent(
+    model = llm,
+    tools=[rag_chain],
+    prompt="You are a data retrieval agent. Your job is to retrieve relevant documents from a vector store based on the user's question. Do not fabricate any information and don't give any explanation or reasoning, just return the documents."
+)
+
+
+response = agent.invoke({"messages": [{"role": "user", "content": "what is the most expensive product?"}]})
+# print(response)

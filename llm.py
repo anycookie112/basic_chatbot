@@ -13,7 +13,9 @@ def llm_groq():
     return llm
 
 
-
+def llm_qwen():
+    llm = ChatGroq(model="qwen/qwen3-32b")
+    return llm
 # prompt_template = ChatPromptTemplate.from_messages(
 #     [
 #         ("system", "{system_message}"),
