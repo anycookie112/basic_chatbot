@@ -208,43 +208,43 @@ customer_service_agent = create_react_agent(
 # )
 
 
+def create_super():
 
-
-supervisor = create_supervisor(
-    model=llm,
-    agents=[math_agent, customer_service_agent],
-    prompt=(
-        "You are a supervisor managing two agents:\n"
-        "- a math agent. Assign math-related tasks to this agent\n"
-        "- a customer service agent. Assign task when user inquires some information about products or the company\n"
-        "Assign work to one agent at a time, do not call agents in parallel.\n"
-        "Do not do any work yourself ."
-    ),
-    add_handoff_back_messages=True,
-    output_mode="full_history",
-).compile()
+    return create_supervisor(
+        model=llm,
+        agents=[math_agent, customer_service_agent],
+        prompt=(
+            "You are a supervisor managing two agents:\n"
+            "- a math agent. Assign math-related tasks to this agent\n"
+            "- a customer service agent. Assign task when user inquires some information about products or the company\n"
+            "Assign work to one agent at a time, do not call agents in parallel.\n"
+            "Do not do any work yourself ."
+        ),
+        add_handoff_back_messages=True,
+        output_mode="full_history",
+    ).compile()
 
 # show_supervisor(supervisor)
 
 
 
-for chunk in supervisor.stream(
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": " What is the total price of a RM 5 mug and two RM 7 mug",
-            }
-        ]
-    },
-):
-    pretty_print_messages(chunk, last_message=True)
+# for chunk in supervisor.stream(
+    # {
+    #     "messages": [
+    #         {
+    #             "role": "user",
+    #             "content": " What is the total price of a RM 5 mug and two RM 7 mug",
+    #         }
+    #     ]
+    # },
+# ):
+#     pretty_print_messages(chunk, last_message=True)
 
-final_message_history = chunk["supervisor"]["messages"]
+# final_message_history = chunk["supervisor"]["messages"]
 
 
-for message in final_message_history:
-    message.pretty_print()
+# for message in final_message_history:
+#     message.pretty_print()
 
 
 """
