@@ -17,7 +17,9 @@ from utils.show_graph import show_mermaid
 llm = ChatOllama(model="qwen2.5:14b")
 db = SQLDatabase.from_uri("sqlite:///zus_outlets.db")
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
+import sqlite3
 
+# print(db.get_table_info())
 
 # Use MessagesState with additional fields
 class State(MessagesState):
@@ -31,10 +33,10 @@ Given an input question, create a syntactically correct {dialect} query to
 run to help find the answer. Unless the user specifies in his question a
 specific number of examples they wish to obtain, always limit your query to
 at most {top_k} results. You can order the results by a relevant column to
-return the most interesting examples in the database.
+return the most interesting examples in the database. Use like instead of "=="
+due to users not giving the full name of the outlet sometimes.
 
-Never query for all the columns from a specific table, only ask for a the
-few relevant columns given the question.
+When joining tables, always include all of the tables
 
 Pay attention to use only the column names that you can see in the schema
 description. Be careful to not query for columns that do not exist. Also,
@@ -43,7 +45,7 @@ pay attention to which column is in which table.
 Only use the following tables:
 {table_info}
 
-the outlet table contains 
+
 """
 
 user_prompt = "Question: {input}"
@@ -103,7 +105,7 @@ def generate_answer_tool(queried_info: str) -> str:
         """
         
         result = llm.invoke(prompt)
-        return result.content
+        return result
         # return result.content if hasattr(result, 'content') else str(result)
     except Exception as e:
         return f"Error generating answer: {str(e)}"
@@ -113,15 +115,24 @@ tools = [write_query_tool, execute_query_tool, generate_answer_tool]
 
 # System message for the assistant
 sys_msg = SystemMessage(content="""You are a helpful assistant for ZUS coffee shop information. 
-You have access to a database with information about ZUS coffee outlets in Malaysia.
+You have access to a database with information about ZUS coffee outlets in Malaysia and each stores operation hours.
 
 When a user asks about ZUS coffee shops, outlets, locations, or stores, follow this workflow:
 1. First use write_query_tool to generate an appropriate SQL query
 2. Then use execute_query_tool to run that query and get the raw results
 3. Finally, use generate_answer_tool to process the raw results into a user-friendly response
+Additional: if users also inquiries about the opening time, do also query the information and let the user know about the information they want
 
+Try to gather all the information like address, store name and opening/closing times before generating the answer
+so the operation table stores the opening and closing time of the outlet
+while the outlet table stores the addreses and the direction url
+                                                                                                
 If the user asks general questions or greetings, respond naturally and offer to help them find ZUS coffee shop information.
+Always reply with something and not keep the users hanging
 
+Do not show any mixups or error messages in the final answer, dont include it in the final message to the users for a better experiece and also dont include, words like in out database, the information gathered 
+Be confident in your answer, but to not make up information. Only use information that is presented to you                       
+                                                
 Always use the tools in sequence for database queries to ensure the best user experience.""")
 
 # LLM with tools bound
@@ -130,62 +141,8 @@ llm_with_tools = llm.bind_tools(tools)
 # Node function
 def assistant(state: State):
     """Main assistant node that processes user messages and calls tools as needed."""
-    messages = [sys_msg] + state["messages"]
-    response = llm_with_tools.invoke(messages)
-    return {"messages": [response]}
+    return {"messages": [llm_with_tools.invoke([sys_msg] + state["messages"])]}
 
-# # Tool execution node
-# def execute_tools(state: State):
-#     """Execute any tool calls from the assistant's response."""
-#     # Get the last message which should contain tool calls
-#     last_message = state["messages"][-1]
-    
-#     # Check if there are tool calls
-#     if not hasattr(last_message, 'tool_calls') or not last_message.tool_calls:
-#         return {"messages": []}
-    
-#     # Execute each tool call
-#     tool_messages = []
-#     for tool_call in last_message.tool_calls:
-#         tool_name = tool_call["name"]
-#         tool_args = tool_call["args"]
-        
-#         # Find and execute the appropriate tool
-#         for tool in tools:
-#             if tool.name == tool_name:
-#                 try:
-#                     result = tool.invoke(tool_args)
-#                     tool_messages.append(
-#                         ToolMessage(
-#                             content=str(result),
-#                             tool_call_id=tool_call["id"],
-#                             name=tool_name
-#                         )
-#                     )
-#                 except Exception as e:
-#                     tool_messages.append(
-#                         ToolMessage(
-#                             content=f"Error executing {tool_name}: {str(e)}",
-#                             tool_call_id=tool_call["id"],
-#                             name=tool_name
-#                         )
-#                     )
-#                 break
-    
-#     return {"messages": tool_messages}
-
-# # Conditional edge function
-# def should_continue(state: State) -> str:
-#     """Determine if we should continue with tool execution or end."""
-#     last_message = state["messages"][-1]
-    
-#     # If the last message has tool calls, continue to execute them
-#     if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-#         return "execute_tools"
-#     else:
-#         return "end"
-
-# Example of how to set up the graph
 from langgraph.graph import StateGraph, END
 
 # Create the graph
@@ -200,7 +157,6 @@ workflow.add_node("tools", ToolNode(tools))
 workflow.add_edge(START, "assistant")
 workflow.add_conditional_edges(
     "assistant",
-    
     tools_condition,
 )
 
@@ -208,27 +164,16 @@ workflow.add_edge("tools", "assistant")
 # Set entry point
 
 # Compile the graph
-app = workflow.compile()
-show_mermaid(app)
+def outlet_query():
+    return workflow.compile()
 
 
 
 
-# Example usage function
-def query_zus_database(user_question: str) -> str:
-    """Query the ZUS database with a user question."""
-    initial_state = State(messages=[HumanMessage(content=user_question)])
-    
-    # Run the workflow
-    final_state = app.invoke(initial_state)
-    
-    # Return the last assistant message
-    for message in reversed(final_state["messages"]):
-        if hasattr(message, 'content') and message.content and not hasattr(message, 'tool_calls'):
-            return message.content
-    
-    return "No response generated"
 
-# Example usage:
-response = query_zus_database("Find me ZUS coffee shops in Kuala Lumpur")
-print(response)
+# messages = [HumanMessage(content="How many stores are there in total? ")]
+# messages = app.invoke({"messages": messages})
+# # print(messages)
+
+# last_message = messages["messages"][-1]  # get the last message
+# print(last_message.content)

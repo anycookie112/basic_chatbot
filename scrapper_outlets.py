@@ -13,10 +13,18 @@ cursor = conn.cursor()
 
 cursor.execute("""
     CREATE TABLE IF NOT EXISTS outlets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id_outlet INTEGER PRIMARY KEY AUTOINCREMENT,
         store_name TEXT,
         address TEXT,
-        direction_url TEXT,
+        direction_url TEXT
+    )
+""")
+conn.commit()
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS operation (
+        id_operation INTEGER PRIMARY KEY AUTOINCREMENT,
+        store_name TEXT,
         day TEXT,
         opening_time TEXT,
         closing_time TEXT
@@ -70,6 +78,7 @@ URL_main = "https://zuscoffee.com/category/store/kuala-lumpur-selangor/"
 
 
 outlets = []
+operations = []
 def scrape_zus(URL_main):
     page = 1
     while page <= 2:
@@ -114,6 +123,11 @@ def scrape_zus(URL_main):
                 
                 operation = google_scrape(direction_url)
                 print(operation)
+                outlets.append({
+                    "store_name": store_name,
+                    "address": address,
+                    "direction_url": direction_url,
+                })
                     # Convert to 24-hour format and print
                 for day, time_range in operation.items():
                     # Fix non-breaking spaces or unicode nbsps
@@ -126,16 +140,20 @@ def scrape_zus(URL_main):
                         closing_24 = datetime.strptime(closing_str.strip(), "%I:%M%p").strftime("%H:%M")
                         # print(f"{day} | {opening_24} | {closing_24}")
 
-                        outlets.append({
+                        operations.append({
                         "store_name": store_name,
-                        "address": address,
-                        "direction_url": direction_url,
                         "opening_time": opening_24,
                         "closing_time": closing_24,
                         "days": day
                     })
                     except ValueError:
                         print(f"{day} | Invalid time format: {time_range}")
+                        operations.append({
+                            "store_name": store_name,
+                            "opening_time": "closed",
+                            "closing_time": "closed",
+                            "days": day
+                        })
                 
                 
 
@@ -145,29 +163,27 @@ def scrape_zus(URL_main):
         
         page += 1
 
-        # with open("outlets.txt", "w", encoding="utf-8") as f:
-        #     for outlet in outlets:
-        #         f.write(f"Store Name: {outlet['store_name']}\n")
-        #         f.write(f"Address: {outlet['address']}\n")
-        #         f.write(f"Direction URL: {outlet['direction_url']}\n")
-        #         f.write(f"Day: {outlet['day']}\n")
-        #         f.write(f"Opening: {outlet['opening_time']}\n")
-        #         f.write(f"Closing: {outlet['closing_time']}\n")
-        #         f.write("-" * 40 + "\n")  # Separator between outlets
-
         # Print results
         for outlet in outlets:
             cursor.execute("""
-                INSERT INTO outlets (store_name, address, direction_url, day, opening_time, closing_time)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO outlets (store_name, address, direction_url)
+                VALUES (?, ?, ?)
             """, (
                 outlet["store_name"],
                 outlet["address"],
                 outlet["direction_url"],
-                outlet["days"],
-                outlet["opening_time"],
-                outlet["closing_time"]
             ))
+        for operation in operations:
+            cursor.execute("""
+                INSERT INTO operation (store_name, day, opening_time, closing_time)
+                VALUES (?, ?, ?, ?)
+            """, (
+                operation["store_name"],
+                operation["days"],
+                operation["opening_time"],
+                operation["closing_time"]
+            ))
+
         conn.commit()
     conn.close()
 

@@ -27,4 +27,47 @@ and try to scrape the data of outlets and put in a db
 so plan > query > answer question
 
 
-so do i really need the context thing inside the prompt?
+to my understanding, if i dont have things that eval my first answer or query, i dont need an agent 
+so if i dont grade my query or grade my answer, i just need a chain 
+if the method is very deterministic, i would just need a chain no need for an agent
+
+{'write_query': {'query': "SELECT closing_time FROM operation WHERE store_name = 'ZUS Coffee – Temu Business Centre City Of Elmina' AND day = 'Monday' LIMIT 1"}}
+{'execute_query': {'result': "[('21:40',)]"}}
+{'generate_answer': {'answer': 'Based on the SQL query and result provided, it seems there might be a slight mismatch between the user\'s question and the information being retrieved. The user asked whether "Temu Business Centre City Of Elmina" is open on Mondays, but the SQL query attempts to retrieve closing time for \'ZUS Coffee – Temu Business Centre City Of Elmina\'. Assuming that \'ZUS Coffee\' is indeed part of or within the "Temu Business Centre City Of Elmina", we can infer from the result.\n\nThe SQL Result indicates a closing time of 21:40 (9:40 PM) on Monday for this store, which implies it is open and operates until that time. However, if the question was intended to be about another specific entity within "Temu Business Centre City Of Elmina", we would need additional queries or information to provide an accurate answer.\n\nGiven the provided data:\n- The location in question (ZUS Coffee – Temu Business Centre City Of Elmina) is open and closes at 21:40 on Monday. \n\nIf you require information about a different store within "Temu Business Centre City Of Elmina", please specify, and I can help formulate the correct query for
+
+for example this means i would need an tool to review the answer, so for this i need an agent that has multiple tools?
+actually dont need an agent? since if i were to do it  in a chain, the node replies yes/no, so in a sense its just an "while" loop
+
+
+so the api loop will be 
+
+
+
+so llm prompt will be 
+you have access to 2 api endpoints
+one queries a vector data base that stores product information 
+and another queries information about outlet information like store name, address and operating hours
+
+
+
+question from user 
+app host will trigger the llm, llm will tell host on what tools to use with the question provided 
+use the tool, query the nessary information 
+pass back to the llm 
+generate an answer based on information
+
+
+
+so for area distance 
+i need to get coordinates of all the current outlets that are in the db 
+then when quried when the question which store is nearest to me 
+i will need to covert that into coordinates as well
+but how do i start searching?
+start small in query if not found in the radius expand radius?
+till there is a hit ?
+
+
+or can i just use tavily?
+
+
+make a dummy function that retunrs something 
