@@ -13,8 +13,9 @@ from langchain.tools import tool
 from langgraph.prebuilt import ToolNode
 from langgraph.prebuilt import tools_condition
 from utils.show_graph import show_mermaid
-
-llm = ChatOllama(model="qwen2.5:14b")
+from utils.llm import llm_groq, llm_qwen
+# llm = ChatOllama(model="qwen2.5:14b")
+llm = llm_qwen()
 db = SQLDatabase.from_uri("sqlite:///zus_outlets.db")
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
 import sqlite3
@@ -163,15 +164,14 @@ workflow.add_conditional_edges(
 workflow.add_edge("tools", "assistant")
 # Set entry point
 
+app = workflow.compile()
+
 # Compile the graph
 def outlet_query():
     return workflow.compile()
 
 
-
-
-
-# messages = [HumanMessage(content="How many stores are there in total? ")]
+# messages = [HumanMessage(content="How many stores are there in total and can you give me the address? ")]
 # messages = app.invoke({"messages": messages})
 # # print(messages)
 

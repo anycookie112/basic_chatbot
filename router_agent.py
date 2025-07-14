@@ -14,8 +14,9 @@ from langgraph.prebuilt import ToolNode
 from langgraph.prebuilt import tools_condition
 import requests
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
-
-llm = ChatOllama(model="qwen2.5:14b")
+from utils.llm import llm_groq
+# llm = ChatOllama(model="qwen2.5:14b")
+llm = llm_groq()
 
 API_URL = "http://localhost:8000/outlet"
 API = "http://localhost:8000/product"
@@ -26,60 +27,81 @@ def call_product(message: str) -> str:
     """API call to fetch information about the products in ZUS coffee"""
     print("=" * 50)
     print(f"Sending message: {message}")
-    endpoint_url=API
-    # Send the message directly as expected by your endpoint
+    endpoint_url = API
     payload = {"message": message}
 
     try:
         response = requests.post(endpoint_url, json=payload)
         print(f"Status Code: {response.status_code}")
         print(f"Response Headers: {response.headers}")
-        print(f"Raw Response: {response.text}")  # Print raw response first
+        print(f"Raw Response: {response.text}")
         
         if response.status_code == 200:
-            print("Response JSON:", response.json())
+            response_data = response.json()
+            print("Response JSON:", response_data)
+            
+            # Return the actual answer to the LLM
+            return response_data.get('answer', 'No product information found')
         else:
-            print(f"Error: HTTP {response.status_code}")
+            error_msg = f"Error: HTTP {response.status_code}"
+            print(error_msg)
+            return error_msg
+            
     except requests.exceptions.JSONDecodeError as e:
-        print(f"JSON decode error: {e}")
-        print(f"Raw response text: {response.text}")
+        error_msg = f"JSON decode error: {e}"
+        print(error_msg)
+        return error_msg
     except Exception as e:
-        print("Error calling outlet:", e)
+        error_msg = f"Error calling product API: {e}"
+        print(error_msg)
+        return error_msg
 
 @tool
 def call_outlet(message: str) -> str:
     """API call to fetch information about outlet information like store name, address, opening and closing times"""
     print("=" * 50)
     print(f"Sending message: {message}")
-    endpoint_url=API_URL
-    # Send the message directly as expected by your endpoint
+    endpoint_url = API_URL
     payload = {"message": message}
 
     try:
         response = requests.post(endpoint_url, json=payload)
         print(f"Status Code: {response.status_code}")
         print(f"Response Headers: {response.headers}")
-        print(f"Raw Response: {response.text}")  # Print raw response first
+        print(f"Raw Response: {response.text}")
         
         if response.status_code == 200:
-            print("Response JSON:", response.json())
+            response_data = response.json()
+            print("Response JSON:", response_data)
+            
+            # Return the actual answer to the LLM
+            return response_data.get('answer', 'No outlet information found')
         else:
-            print(f"Error: HTTP {response.status_code}")
+            error_msg = f"Error: HTTP {response.status_code}"
+            print(error_msg)
+            return error_msg
+            
     except requests.exceptions.JSONDecodeError as e:
-        print(f"JSON decode error: {e}")
-        print(f"Raw response text: {response.text}")
+        error_msg = f"JSON decode error: {e}"
+        print(error_msg)
+        return error_msg
     except Exception as e:
-        print("Error calling outlet:", e)
-
-# call_outlet("Are there any stores in KL?")
-# call_product("Are there any stores in KL?")
-
+        error_msg = f"Error calling outlet API: {e}"
+        print(error_msg)
+        return error_msg
 
 
-system_prompt = """You are a customer service agent. You have access to two API tools that helps you get information to answer customer questions.
+
+system_prompt = """
+You are a customer service agent. You have access to two API tools that helps you get information to answer customer questions.
 How to use the API
 you can directly input the user question to the API call and a str argument
-or you can rewrite the user's question slightly to get a better query if the query is not good enought in terms of wording."""
+or you can rewrite the user's question slightly to get a better query if the query is not good enough in terms of wording.
+
+For outlet information, you will receive a summary of information that is requested by the user when you call the API
+
+
+"""
 
 
 class State(MessagesState):
@@ -115,16 +137,18 @@ workflow.add_conditional_edges(
 )
 
 workflow.add_edge("tools", "cs_agent")
-# Set entry point
-graph = workflow.compile()
+
+from langgraph.checkpoint.memory import MemorySaver
+
+def cs_api ():
+    memory = MemorySaver()
+
+    return workflow.compile(checkpointer=memory)
 
 
-messages = [HumanMessage(content="How many stores are there in total? ")]
-messages = graph.invoke({"messages": messages})
-print(messages)
+# messages = [HumanMessage(content="are there any outlets in KL? And what mugs do you sell?")]
+# messages = graph.invoke({"messages": messages})
+# print(messages)
 
-from utils.show_graph import show_mermaid
-show_mermaid(graph)
-# Compile the graph
-def outlet_query():
-    return workflow.compile()
+# from utils.show_graph import show_mermaid
+# show_mermaid(graph)

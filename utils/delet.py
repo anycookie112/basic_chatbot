@@ -1,6 +1,6 @@
 
 from langchain_chroma import Chroma
-from embedding_model import embedding_minilm
+from utils.embedding_model import embedding_minilm
 
 embedding_model = embedding_minilm()
 

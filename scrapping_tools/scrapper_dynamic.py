@@ -4,9 +4,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from pprint import pprint
-from llm_list import llm_groq
+from utils.llm import llm_groq
 from langchain.prompts import ChatPromptTemplate
-from embedding_model import embedding_minilm
+from utils.embedding_model import embedding_minilm
 from langchain_community.vectorstores import Chroma
 
 url = "https://shop.zuscoffee.com/collections/drinkware"
@@ -128,14 +128,7 @@ retriever = vectorstore.as_retriever()
 question = "what are the available drinkwares under rm 70?"
 docs = retriever.invoke(question)
 print(docs)
-# # print(docs)
 
-# text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-#     chunk_size=500, chunk_overlap=0
-# )
-# doc_splits = text_splitter.split_documents(docs)
-
-# pprint(doc_splits)
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 
