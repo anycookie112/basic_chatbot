@@ -34,7 +34,7 @@ Other models seem to have trouble with memory and multi tool calls
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/zus-chatbot
+https://github.com/anycookie112/basic_chatbot.git
 
 # Go into the folder
 cd basic_chatbot
