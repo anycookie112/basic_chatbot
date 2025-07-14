@@ -16,10 +16,10 @@ A chatbot API that answers questions about ZUS Coffee's products and outlets usi
 
 ## Scraping Tools
 
--scrapper_dynamic
+- scrapper_dynamic.py
 Product scrapper using LLM model to extarct important information from the webpage and giving the products descriptions for vector db query
 
--scrapper_outlets
+- scrapper_outlets.py
 Multipage scraping and storing data into SQLite
 
 ## Graph Flow
