@@ -2,34 +2,13 @@
 from fastapi import FastAPI, Request
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
-from text2sql_agent import outlet_query
-from product_api import retriever_tool
+from api_calls.text2sql_agent import outlet_query
+from api_calls.product_api import retriever_tool
 
 
 app = FastAPI()
 query_info = outlet_query()
 
-
-# messages = [HumanMessage(content="are there any outlets in KL? And what mugs do you sell?")]
-# messages = graph.invoke({"messages": messages})
-# print(messages)
-
-# class ChatRequest(BaseModel):
-#     message: str
-
-# @app.post("/chat")
-# async def chat_endpoint(request: Request):
-#     data = await request.json()
-#     message = data.get("message", "")
-    
-#     # Get response from chatbot
-#     messages = [HumanMessage(content= message)]
-#     response = cs_agent.invoke(messages)
-
-
-#     return {
-#         "response": response,
-#     }
 
 @app.post("/product")
 async def product_endpoint(request: Request):

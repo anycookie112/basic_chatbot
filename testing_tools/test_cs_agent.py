@@ -1,6 +1,6 @@
 # METHOD 1: Direct Testing (No API needed)
 # test_cs_agent.py
-from router_agent import cs_api
+from customer_service_agent import cs_api
 
 from langchain_core.messages import HumanMessage
 
@@ -122,14 +122,14 @@ def test_live_server():
             
             if response.status_code == 200:
                 result = response.json()
-                print(f"✅ SUCCESS")
-                print(f"📝 Response: {result['response']}")
+                print(f" SUCCESS")
+                print(f" Response: {result['response']}")
             else:
-                print(f"❌ ERROR: {response.status_code}")
-                print(f"📝 Error: {response.text}")
+                print(f" ERROR: {response.status_code}")
+                print(f" Error: {response.text}")
                 
         except requests.exceptions.RequestException as e:
-            print(f"❌ CONNECTION ERROR: {e}")
+            print(f" CONNECTION ERROR: {e}")
 
 if __name__ == "__main__":
     test_live_server()

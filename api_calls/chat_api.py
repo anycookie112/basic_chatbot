@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
-from router_agent import cs_api
+from customer_service_agent import cs_api
 app = FastAPI(title="ZUS Coffee Customer Service API")
 
 # Add CORS for frontend

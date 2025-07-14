@@ -40,22 +40,17 @@
 
 # if __name__ == "__main__":
 #     test_live_server()
-from router_agent import cs_api
+from customer_service_agent import cs_agent
 
-from langchain_core.messages import HumanMessage
-
-# Initialize your cs_agent
-cs_agent_workflow = cs_api()
-
-from langchain_core.messages import HumanMessage
-
+from langchain_core.messages import HumanMessage, SystemMessage
 def interactive_test():
-    """Interactive testing in terminal"""
-    cs_agent_workflow = cs_api()
+    cs_agent_workflow = cs_agent()
     
     print("🤖 ZUS Coffee Chatbot - Interactive Test")
     print("Type 'quit' to exit")
     print("=" * 50)
+    
+    thread_id = "main_conversation"  # Same thread for conversation continuity
     
     while True:
         user_input = input("\n👤 You: ")
@@ -65,11 +60,19 @@ def interactive_test():
             break
         
         try:
-            config = {"configurable": {"thread_id": "1"}}
-
-        # Invoke your cs_agent workflow
-
-            messages = [HumanMessage(content=user_input)]
+            config = {"configurable": {"thread_id": thread_id}}
+            
+            # Add a system message to reset tool selection context
+            reset_message = SystemMessage(content="""
+            Analyze this new user question independently. 
+            Choose the appropriate tool based ONLY on this current question:
+            - call_product: for product/coffee/mug/food questions
+            - call_outlet: for store/location/address/hours questions
+            Ignore previous tool usage patterns.
+            """)
+            
+            messages = [reset_message, HumanMessage(content=user_input)]
+            print(config)
             result = cs_agent_workflow.invoke({"messages": messages}, config)
             last_message = result["messages"][-1]
             
@@ -77,6 +80,7 @@ def interactive_test():
             
         except Exception as e:
             print(f"❌ Error: {e}")
+
 
 if __name__ == "__main__":
     interactive_test()
