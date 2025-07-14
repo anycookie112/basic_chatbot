@@ -349,9 +349,9 @@
                 
                 const data = await response.json();
                 
-                // Update session ID
+                // Update session ID - fixed the error here
                 sessionId = data.session_id;
-                document.getElementById('sessionId').textContent = sessionId.substring(0, 8) + '...';
+                document.getElementById('sessionId').textContent = sessionId ? sessionId.substring(0, 8) + '...' : 'New Session';
                 
                 // Hide loading and show response
                 hideLoading();

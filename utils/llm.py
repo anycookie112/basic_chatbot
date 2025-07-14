@@ -25,11 +25,3 @@ def llm_qwen2():
 def llm_meta():
     llm = ChatGroq(model="meta-llama/llama-4-maverick-17b-128e-instruct")
     return llm
-# prompt_template = ChatPromptTemplate.from_messages(
-#     [
-#         ("system", "{system_message}"),
-#         MessagesPlaceholder("messages")
-#     ]
-# )
-
-# llm_model = prompt_template | llm

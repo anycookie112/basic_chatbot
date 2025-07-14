@@ -18,13 +18,9 @@ from utils.llm import llm_groq, llm_qwen
 llm = llm_qwen()
 db = SQLDatabase.from_uri("sqlite:///zus_outlets.db")
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, ToolMessage
-import sqlite3
 
-# print(db.get_table_info())
 
-# Use MessagesState with additional fields
 class State(MessagesState):
-    # Note: MessagesState already has messages as List[BaseMessage], don't override it
     query: str = ""
     result: str = ""
     answer: str = ""
@@ -89,7 +85,6 @@ def execute_query_tool(sql_query: str) -> str:
 def generate_answer_tool(queried_info: str) -> str:
     """Process queried information and generate a helpful answer for the user."""
     try:
-        # Create a prompt to help the LLM process the database results
         prompt = f"""
         Based on the following database query results about ZUS coffee shops, 
         provide a helpful, friendly, and informative response to the user. 
@@ -107,14 +102,12 @@ def generate_answer_tool(queried_info: str) -> str:
         
         result = llm.invoke(prompt)
         return result
-        # return result.content if hasattr(result, 'content') else str(result)
     except Exception as e:
         return f"Error generating answer: {str(e)}"
 
 # Available tools
 tools = [write_query_tool, execute_query_tool, generate_answer_tool]
 
-# System message for the assistant
 sys_msg = SystemMessage(content="""You are a helpful assistant for ZUS coffee shop information. 
 You have access to a database with information about ZUS coffee outlets in Malaysia and each stores operation hours.
 
@@ -136,25 +129,19 @@ Be confident in your answer, but to not make up information. Only use informatio
                                                 
 Always use the tools in sequence for database queries to ensure the best user experience.""")
 
-# LLM with tools bound
 llm_with_tools = llm.bind_tools(tools)
 
-# Node function
 def assistant(state: State):
     """Main assistant node that processes user messages and calls tools as needed."""
     return {"messages": [llm_with_tools.invoke([sys_msg] + state["messages"])]}
 
 from langgraph.graph import StateGraph, END
 
-# Create the graph
 workflow = StateGraph(State)
 
-# Add nodes
 workflow.add_node("assistant", assistant)
 workflow.add_node("tools", ToolNode(tools))
 
-
-# Add edges
 workflow.add_edge(START, "assistant")
 workflow.add_conditional_edges(
     "assistant",
@@ -162,20 +149,15 @@ workflow.add_conditional_edges(
 )
 
 workflow.add_edge("tools", "assistant")
-# Set entry point
 
-# app = workflow.compile()
 
-# Compile the graph
 def outlet_query():
     return workflow.compile()
 
 app = outlet_query()
-# messages = [HumanMessage(content="Are there any stores in KL? If so what are their addresses ")]
 messages = [HumanMessage(content="How many stores are there in total and can you give me the address? ")]
 
 messages = app.invoke({"messages": messages})
-# print(messages)
 
-last_message = messages["messages"][-1]  # get the last message
+last_message = messages["messages"][-1] 
 print(last_message.content)

@@ -1,7 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from pprint import pprint
 from utils.llm import llm_groq

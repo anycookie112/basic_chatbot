@@ -1,12 +1,4 @@
-from langchain_community.utilities import SQLDatabase
-from langchain_ollama import ChatOllama
-from typing_extensions import TypedDict
-from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
 from typing import Literal
-from langchain_core.messages import BaseMessage
-from typing import List
-from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
 from langgraph.graph import START, StateGraph, END
 from langgraph.graph import MessagesState
 from langchain.tools import tool
@@ -91,12 +83,43 @@ def call_outlet(message: str) -> str:
         return error_msg
 
 
+@tool
+def calculator(
+    a: int,
+    b: int,
+    operation: Literal["add", "multiply", "divide"]
+) -> float:
+    """Perform a basic arithmetic operation (add, multiply, divide) on two integers.
+
+    Args:
+        a: The first integer.
+        b: The second integer.
+        operation: The operation to perform ("add", "multiply", or "divide").
+
+    Returns:
+        The result of the arithmetic operation.
+    """
+    if operation == "add":
+        return a + b
+    elif operation == "multiply":
+        return a * b
+    elif operation == "divide":
+        if b == 0:
+            raise ValueError("Cannot divide by zero.")
+        return a / b
+    else:
+        raise ValueError(f"Unsupported operation: {operation}")
+
+
+
+
 
 system_prompt = """
 You are a customer service agent for ZUS Coffee. You have access to two API tools:
 
 1. **call_product** - For questions about coffee products, food, mugs, merchandise, prices, ingredients
 2. **call_outlet** - For questions about store locations, addresses, opening hours, contact information
+3. **calculator** - For math related questions which includes, add, multiply and divide.
 
 CRITICAL TOOL SELECTION RULES:
 - ALWAYS analyze the current user question independently
@@ -121,7 +144,6 @@ IMPORTANT:
 
 
 class State(MessagesState):
-    # Note: MessagesState already has messages as List[BaseMessage], don't override it
     query: str = ""
     result: str = ""
     answer: str = ""
@@ -129,11 +151,10 @@ class State(MessagesState):
 
 
 
-tools = [call_product, call_outlet]
+tools = [call_product, call_outlet, calculator]
 
 llm_with_tools = llm.bind_tools(tools)
 
-# Node function
 def cs_agent(state: State):
     """Main assistant node that processes user messages and calls tools as needed."""
     return {"messages": [llm_with_tools.invoke([system_prompt] + state["messages"])]}
@@ -144,8 +165,6 @@ workflow = StateGraph(State)
 workflow.add_node("cs_agent", cs_agent)
 workflow.add_node("tools", ToolNode(tools))
 
-
-# Add edges
 workflow.add_edge(START, "cs_agent")
 workflow.add_conditional_edges(
     "cs_agent",
@@ -160,31 +179,27 @@ from langgraph.checkpoint.memory import MemorySaver
 
 memory = MemorySaver()
 graph = workflow.compile(checkpointer=memory)
-# graph = workflow.compile()
-
-
-
+graph = workflow.compile()
 
 
 from langchain_core.messages import HumanMessage, SystemMessage
 def interactive_test():    
-    print("🤖 ZUS Coffee Chatbot - Interactive Test")
+    print("ZUS Coffee Chatbot - Interactive Test")
     print("Type 'quit' to exit")
     print("=" * 50)
     
-    thread_id = "main_conversation"  # Same thread for conversation continuity
+    thread_id = "main_conversation"  
     
     while True:
-        user_input = input("\n👤 You: ")
+        user_input = input("\nYou: ")
         
         if user_input.lower() in ['quit', 'exit', 'q']:
-            print("👋 Goodbye!")
+            print("Goodbye!")
             break
         
         try:
             config = {"configurable": {"thread_id": thread_id}}
             
-            # Add a system message to reset tool selection context
             reset_message = SystemMessage(content="""
             Analyze this new user question independently. 
             Choose the appropriate tool based ONLY on this current question:
@@ -197,15 +212,15 @@ def interactive_test():
             result = graph.invoke({"messages": messages}, config)
             last_message = result["messages"][-1]
             
-            print(f"🤖 Bot: {last_message.content}")
+            print(f"Bot: {last_message.content}")
             
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"Error: {e}")
 
 
 
-if __name__ == "__main__":
-    interactive_test()
+# if __name__ == "__main__":
+#     interactive_test()
 
 
 

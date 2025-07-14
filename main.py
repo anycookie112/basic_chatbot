@@ -10,7 +10,7 @@ app = FastAPI()
 query_info = outlet_query()
 
 
-@app.post("/product")
+@app.post("/products?query=<user_question>")
 async def product_endpoint(request: Request):
     data = await request.json()
     message = data.get("message", "")
@@ -24,17 +24,15 @@ async def product_endpoint(request: Request):
     }
 
 
-@app.post("/outlet")
+@app.post("/outlets?query=<nl_query>")
 async def outlet_endpoint(request: Request):
     data = await request.json()
     message = data.get("message", "")
     
-    # Format the data to match what your LangGraph workflow expects
     messages = [HumanMessage(content=message)]
     
-    # Use the pre-compiled workflow instead of creating a new one
     result = query_info.invoke({"messages": messages})
-    last_message = result["messages"][-1]  # get the last message
+    last_message = result["messages"][-1]  
 
     return {
         "answer": last_message.content
@@ -49,7 +47,6 @@ this llm will be given 2 tools
 the llm will decide which api to call for the information needed to answer the user's question
 then get the info generate the answer
 send the answer to the user
-
 
 
 """
