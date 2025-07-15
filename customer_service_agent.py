@@ -10,8 +10,8 @@ from utils.llm import *
 # llm = ChatOllama(model="qwen2.5:14b")
 llm = llm_meta()
 
-API_URL = "http://localhost:8000/outlet"
-API = "http://localhost:8000/product"
+API_URL = "http://localhost:8000/outlets"
+API = "http://localhost:8000/products"
 
 
 @tool
@@ -219,8 +219,8 @@ def interactive_test():
 
 
 
-# if __name__ == "__main__":
-#     interactive_test()
+if __name__ == "__main__":
+    interactive_test()
 
 
 

@@ -10,7 +10,7 @@ app = FastAPI()
 query_info = outlet_query()
 
 
-@app.post("/products?query=<user_question>")
+@app.post("/products")
 async def product_endpoint(request: Request):
     data = await request.json()
     message = data.get("message", "")
@@ -24,7 +24,7 @@ async def product_endpoint(request: Request):
     }
 
 
-@app.post("/outlets?query=<nl_query>")
+@app.post("/outlets")
 async def outlet_endpoint(request: Request):
     data = await request.json()
     message = data.get("message", "")

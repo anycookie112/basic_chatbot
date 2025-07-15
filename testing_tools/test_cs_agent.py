@@ -1,11 +1,11 @@
 # METHOD 1: Direct Testing (No API needed)
 # test_cs_agent.py
-from customer_service_agent import cs_api
+from customer_service_agent import cs_agent
 
 from langchain_core.messages import HumanMessage
 
 # Initialize your cs_agent
-cs_agent_workflow = cs_api()
+cs_agent_workflow = cs_agent()
 
 def test_direct():
     """Test cs_agent directly without API"""
@@ -45,7 +45,7 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 
 app = FastAPI()
-cs_agent_workflow = cs_api()
+cs_agent_workflow = cs_agent()
 
 class ChatRequest(BaseModel):
     message: str
@@ -215,7 +215,7 @@ from langchain_core.messages import HumanMessage
 
 def interactive_test():
     """Interactive testing in terminal"""
-    cs_agent_workflow = cs_api()
+    cs_agent_workflow = cs_agent()
     
     print("🤖 ZUS Coffee Chatbot - Interactive Test")
     print("Type 'quit' to exit")
