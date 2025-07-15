@@ -46,14 +46,8 @@ GROQ_API_KEY = "YOUR_API_KEYS"
 pip install -r requirements.txt
 
 # Run the FastAPI server
-python main.py #(Run API server for product and outlets)
-python chat_api.py #(Run API server for chatbot/customer service agent)
-
-
-
-
-# Run the Chatbot interface
-python -m http.server 3000
+run.bat #windows
+./run.sh #linux
 
 # Go to
 http://localhost:3000/chat.html
